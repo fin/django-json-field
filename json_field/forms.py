@@ -14,6 +14,8 @@ class JSONFormField(fields.Field):
     def clean(self, value):
         # Have to jump through a few hoops to make this reliable
         value = super(JSONFormField, self).clean(value)
+        if not isinstance(value, basestring):
+            return value
 
         # allow an empty value on an optional field
         if value is None:
@@ -21,26 +23,14 @@ class JSONFormField(fields.Field):
 
         ## Got to get rid of newlines for validation to work
         # Data newlines are escaped so this is safe
-        value = value.replace('\r', '').replace('\n', '')
-
-        json_globals = { # safety first!
-            '__builtins__': None,
-        }
-        if not self.simple: # optional restriction
-            json_globals.update({'datetime':datetime})
-        json_locals = { # value compatibility
-            'null': None,
-            'true': True,
-            'false': False,
-        }
         try:
-            value = json.dumps(eval(value, json_globals, json_locals), **self.encoder_kwargs)
-        except Exception, e: # eval can throw many different errors
-            raise util.ValidationError('%s (Caught "%s")' % (self.help_text, e))
-
-        try:
-            json.loads(value, **self.decoder_kwargs)
+            value = json.loads(value)
         except ValueError, e:
             raise util.ValidationError('%s (Caught "%s")' % (self.help_text, e))
 
         return value
+
+    def bound_data(self, data, initial):
+        if isinstance(data, basestring):
+            return data
+        return json.dumps(data)
