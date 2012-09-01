@@ -24,7 +24,7 @@ class JSONFormField(fields.Field):
         ## Got to get rid of newlines for validation to work
         # Data newlines are escaped so this is safe
         try:
-            value = json.loads(value)
+            value = json.loads(value, **self.decoder_kwargs)
         except ValueError, e:
             raise util.ValidationError('%s (Caught "%s")' % (self.help_text, e))
 
@@ -33,4 +33,4 @@ class JSONFormField(fields.Field):
     def bound_data(self, data, initial):
         if isinstance(data, basestring):
             return data
-        return json.dumps(data)
+        return json.dumps(data, **self.encoder_kwargs)
